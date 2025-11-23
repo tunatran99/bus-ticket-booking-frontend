@@ -6,6 +6,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  role?: string;
 }
 
 interface AuthContextType {
@@ -24,6 +25,7 @@ function mapBackendUser(u: BackendUser): User {
     name: u.fullName,
     email: u.email,
     phone: u.phone,
+    role: u.role,
   };
 }
 
