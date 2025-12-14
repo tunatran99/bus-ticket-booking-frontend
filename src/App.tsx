@@ -23,6 +23,7 @@ import { AdminTripsPage } from './pages/AdminTripsPage';
 import { AdminRoutesPage } from './pages/AdminRoutesPage';
 import { AdminBusesPage } from './pages/AdminBusesPage';
 import { GoogleCallback } from './pages/GoogleCallback';
+import { GuestLookup } from './pages/GuestLookup';
 
 export default function App() {
   return (
@@ -91,32 +92,11 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/routes"
-              element={
-                <ProtectedRoute>
-                  <RouteSelection />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/booking/passengers"
-              element={
-                <ProtectedRoute>
-                  <PassengerDetails />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/routes" element={<RouteSelection />} />
+            <Route path="/booking/passengers" element={<PassengerDetails />} />
             <Route path="/search" element={<TripSearchResults />} />
             <Route path="/trips/:id" element={<TripDetails />} />
-            <Route
-              path="/booking-review"
-              element={
-                <ProtectedRoute>
-                  <BookingReview />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/booking-review" element={<BookingReview />} />
             <Route
               path="/my-tickets"
               element={
@@ -127,6 +107,7 @@ export default function App() {
             />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/guest-booking" element={<GuestLookup />} />
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Router>

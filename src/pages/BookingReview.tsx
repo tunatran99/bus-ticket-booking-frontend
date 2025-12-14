@@ -2,23 +2,58 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
-import { MapPin, Clock, Users, Shield, Wallet, Pencil, Phone, Mail } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
+import { MapPin, Clock, Users, Shield, Wallet, Pencil, Phone, Mail, LogIn } from 'lucide-react';
 import { useFeedbackDialog } from '../hooks/useFeedbackDialog';
 import type { PassengerFormState, PassengerRouteState } from '../types/passenger';
 import { bookingsService } from '../services/bookings.service';
 import { getErrorMessage } from '../services/error';
+import { ticketsService } from '../services/tickets.service';
+
+const ROUTE_DELIMITERS = ['→', '->', ' - ', ' — ', ' to '];
+
+const extractRouteCities = (routeLabel?: string) => {
+  if (!routeLabel) {
+    return { origin: 'Origin', destination: 'Destination' };
+  }
+
+  const normalized = routeLabel.replace(/\s+/g, ' ').trim();
+  for (const delimiter of ROUTE_DELIMITERS) {
+    if (normalized.includes(delimiter)) {
+      const [rawOrigin, rawDestination] = normalized.split(delimiter);
+      const origin = rawOrigin?.trim();
+      const destination = rawDestination?.trim();
+      if (origin && destination) {
+        return { origin, destination };
+      }
+    }
+  }
+
+  return { origin: normalized, destination: 'Destination' };
+};
+
+const generateBookingReferenceFallback = () => {
+  const randomSegment =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()
+      : Math.random().toString(36).slice(2, 10).toUpperCase();
+  return `BT-${randomSegment}`;
+};
 
 export function BookingReview() {
   const { t, language } = useLanguage();
+  const { isAuthenticated } = useAuth();
   const { showDialog, dialog } = useFeedbackDialog();
   const navigate = useNavigate();
   const location = useLocation();
   const locationState: PassengerRouteState = (location.state as PassengerRouteState) ?? {};
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const guestMode = !isAuthenticated;
 
   const passengers: PassengerFormState[] = locationState.passengers ?? [];
   const contact = locationState.contact;
@@ -88,10 +123,78 @@ export function BookingReview() {
     seatCount: effectiveSeatCount,
   };
 
+  const sendTicketEmailIfPossible = async (bookingReference: string) => {
+    if (passengers.length === 0) return;
+    const contactEmail = contact.email?.trim();
+    if (!contactEmail) return;
+
+    const mainPassenger = passengers[0];
+    const passengerName = mainPassenger.name?.trim() || contactEmail;
+    const passengerId = mainPassenger.idNumber?.trim();
+    const seatLabel = mainPassenger.seatLabel?.trim() || 'Seat 1A';
+    const { origin, destination } = extractRouteCities(trip.route);
+    const departureTime = trip.date ?? new Date().toISOString();
+    const arrivalTime = trip.arrival ?? departureTime;
+
+    try {
+      await ticketsService.sendTicketEmail({
+        recipient: contactEmail,
+        ticket: {
+          bookingReference,
+          issuedBy: trip.company ?? 'BusTicket.vn',
+          passenger: {
+            name: passengerName,
+            id: passengerId,
+          },
+          seat: {
+            label: seatLabel,
+            type: trip.seatType,
+            coach: trip.company,
+          },
+          route: {
+            origin,
+            destination,
+          },
+          bus: {
+            name: trip.company ?? 'BusTicket Coach',
+            plate: trip.busPlate || undefined,
+          },
+          departure: {
+            city: origin,
+            terminal: trip.terminal ?? `${origin} Central Station`,
+            time: departureTime,
+          },
+          arrival: {
+            city: destination,
+            terminal: `${destination} Central Station`,
+            time: arrivalTime,
+          },
+          supportContact: '1900 868 686',
+        },
+      });
+    } catch (error) {
+      console.error('Failed to send ticket email', error);
+    }
+  };
+
   const handleConfirm = async () => {
     setIsSubmitting(true);
     try {
-      const response = await bookingsService.createBooking({
+      const createBookingRequest = guestMode
+        ? (payload: Parameters<typeof bookingsService.createGuestBooking>[0]) =>
+            bookingsService.createGuestBooking(payload)
+        : (payload: Parameters<typeof bookingsService.createBooking>[0]) =>
+            bookingsService.createBooking(payload);
+
+      const confirmBookingRequest = guestMode
+        ? (reference: string) =>
+            bookingsService.confirmGuestBooking(reference, {
+              phone: contact.phone,
+              email: contact.email,
+            })
+        : (reference: string) => bookingsService.confirmBooking(reference);
+
+      const response = await createBookingRequest({
         route: trip.route!,
         travelDate: trip.date!,
         arrival: trip.arrival,
@@ -101,13 +204,16 @@ export function BookingReview() {
         contact,
         passengers,
       });
+      const bookingReference = response.bookingReference ?? generateBookingReferenceFallback();
+      const confirmed = response.bookingReference
+        ? await confirmBookingRequest(bookingReference)
+        : { status: 'pending' };
+      await sendTicketEmailIfPossible(bookingReference);
 
-      const referenceLine = response.bookingReference
-        ? ` Reference: ${response.bookingReference}`
-        : '';
+      const referenceLine = bookingReference ? ` Reference: ${bookingReference}` : '';
       showDialog({
         title: t('bookingReview.confirmationSuccessTitle'),
-        description: `${t('bookingReview.confirmationSuccessDescription')}${referenceLine}`,
+        description: `${t('bookingReview.confirmationSuccessDescription')}${referenceLine} (${confirmed.status})`,
       });
     } catch (error: unknown) {
       showDialog({
@@ -151,6 +257,33 @@ export function BookingReview() {
             </Button>
           </div>
         </div>
+
+        {guestMode && (
+          <Alert className="mb-6 border-dashed border-primary/40 bg-primary/5">
+            <AlertTitle>
+              {language === 'vi'
+                ? 'Bạn đang đặt vé với tư cách khách'
+                : 'You are booking as a guest'}
+            </AlertTitle>
+            <AlertDescription className="flex flex-wrap items-center gap-3 text-sm">
+              <span>
+                {language === 'vi'
+                  ? 'Tạo tài khoản để lưu hành trình và truy cập dễ dàng mục My Tickets.'
+                  : 'Create an account to save journeys and access them instantly from My Tickets.'}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => navigate('/signup')}
+              >
+                <LogIn className="size-3" />
+                {language === 'vi' ? 'Đăng ký' : 'Create account'}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="space-y-6 lg:col-span-2">

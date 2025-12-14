@@ -37,6 +37,7 @@ export function Navigation() {
   const navLinks = [
     { to: '/', label: t('nav.home') },
     { to: '/my-tickets', label: t('nav.myTickets') },
+    { to: '/guest-booking', label: t('nav.guestLookup') },
     { to: '/routes', label: t('nav.routes') },
     { to: '/about', label: t('nav.about') },
     { to: '/contact', label: t('nav.contact') },
