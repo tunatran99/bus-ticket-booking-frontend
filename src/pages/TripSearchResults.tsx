@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Layout } from '../components/Layout';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Checkbox } from '../components/ui/checkbox';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
@@ -57,6 +58,29 @@ export function TripSearchResults() {
   const [sortBy, setSortBy] = useState<
     'price_asc' | 'price_desc' | 'time_asc' | 'time_desc' | 'duration_asc' | 'duration_desc'
   >('time_asc');
+  const amenityFilters = useMemo(
+    () =>
+      ['wifi', 'snacks', 'entertainment', 'charging', 'restroom', 'blanket'].map((value) => ({
+        value,
+        label: t(`tripSearch.filters.amenities.options.${value}`),
+      })),
+    [t],
+  );
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+
+  const getAmenityLabel = (value: string) => {
+    const translated = t(`tripSearch.filters.amenities.options.${value}`);
+    return translated || value;
+  };
+
+  const handleAmenityChange = (value: string, checked: boolean) => {
+    setSelectedAmenities((prev) => {
+      if (checked) {
+        return prev.includes(value) ? prev : [...prev, value];
+      }
+      return prev.filter((item) => item !== value);
+    });
+  };
 
   const loadTrips = async () => {
     if (!origin || !destination || !date) {
@@ -77,6 +101,7 @@ export function TripSearchResults() {
       if (minPrice) params.minPrice = parseFloat(minPrice);
       if (maxPrice) params.maxPrice = parseFloat(maxPrice);
       if (busType && busType !== 'all') params.busType = busType;
+      if (selectedAmenities.length > 0) params.amenities = selectedAmenities;
 
       const response = await tripsService.searchTrips(params);
       setTrips(response.data.trips);
@@ -96,7 +121,19 @@ export function TripSearchResults() {
     }
     void loadTrips();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origin, destination, date, page, timeFrom, timeTo, minPrice, maxPrice, busType, sortBy]);
+  }, [
+    origin,
+    destination,
+    date,
+    page,
+    timeFrom,
+    timeTo,
+    minPrice,
+    maxPrice,
+    busType,
+    sortBy,
+    selectedAmenities,
+  ]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -129,6 +166,7 @@ export function TripSearchResults() {
     setMaxPrice('');
     setBusType('all');
     setSortBy('time_asc');
+    setSelectedAmenities([]);
     void loadTrips();
   };
 
@@ -218,6 +256,23 @@ export function TripSearchResults() {
                   </Select>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>{t('tripSearch.filters.amenities.title')}</Label>
+                  <div className="space-y-2">
+                    {amenityFilters.map((option) => (
+                      <label key={option.value} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={selectedAmenities.includes(option.value)}
+                          onCheckedChange={(checked) =>
+                            handleAmenityChange(option.value, checked === true)
+                          }
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
                 <Button variant="outline" onClick={clearFilters} className="w-full">
                   {t('tripSearch.filters.clear')}
                 </Button>
@@ -294,6 +349,15 @@ export function TripSearchResults() {
                             {trip.route?.name || t('tripSearch.results.routeFallback')}
                           </h3>
                           {trip.bus && <Badge variant="secondary">{trip.bus.licensePlate}</Badge>}
+                          {trip.bus?.amenities && trip.bus.amenities.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {trip.bus.amenities.map((amenity) => (
+                                <Badge key={amenity} variant="outline" className="text-xs">
+                                  {getAmenityLabel(amenity)}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                         {/* Time and Duration */}

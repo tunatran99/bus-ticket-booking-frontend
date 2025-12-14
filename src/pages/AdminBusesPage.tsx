@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -31,7 +31,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
-import { Plus, Edit2, Trash2, Search, Bus, Grid3x3 } from 'lucide-react';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Search,
+  Bus,
+  Grid3x3,
+  Wifi,
+  Coffee,
+  Film,
+  BatteryCharging,
+  Bath,
+  Sparkles,
+} from 'lucide-react';
 import apiClient from '../services/api';
 import { toast } from 'sonner';
 import { cn } from '../components/ui/utils';
@@ -59,7 +72,17 @@ interface Bus {
   status: string;
   notes?: string;
   seatLayouts?: SeatLayout[];
+  amenities?: string[];
 }
+
+const AMENITY_OPTIONS = [
+  { value: 'wifi', icon: Wifi },
+  { value: 'snacks', icon: Coffee },
+  { value: 'entertainment', icon: Film },
+  { value: 'charging', icon: BatteryCharging },
+  { value: 'restroom', icon: Bath },
+  { value: 'blanket', icon: Sparkles },
+] as const;
 
 export function AdminBusesPage() {
   const { t } = useLanguage();
@@ -80,7 +103,32 @@ export function AdminBusesPage() {
     totalSeats: '',
     status: 'active',
     notes: '',
+    amenities: [] as string[],
   });
+  const amenityOptions = useMemo(
+    () =>
+      AMENITY_OPTIONS.map((option) => ({
+        ...option,
+        label: t(`tripSearch.filters.amenities.options.${option.value}`),
+      })),
+    [t],
+  );
+
+  const getAmenityLabel = (value: string) => {
+    const key = `tripSearch.filters.amenities.options.${value}` as const;
+    const translated = t(key);
+    return translated || value;
+  };
+
+  const toggleAmenity = (value: string) => {
+    setFormData((previous) => {
+      const exists = previous.amenities.includes(value);
+      const amenities = exists
+        ? previous.amenities.filter((item) => item !== value)
+        : [...previous.amenities, value];
+      return { ...previous, amenities };
+    });
+  };
 
   useEffect(() => {
     void loadData();
@@ -132,6 +180,7 @@ export function AdminBusesPage() {
       totalSeats: '',
       status: 'active',
       notes: '',
+      amenities: [],
     });
     setIsDialogOpen(true);
   };
@@ -145,6 +194,7 @@ export function AdminBusesPage() {
       totalSeats: bus.totalSeats.toString(),
       status: bus.status,
       notes: bus.notes || '',
+      amenities: bus.amenities || [],
     });
     setIsDialogOpen(true);
   };
@@ -176,6 +226,7 @@ export function AdminBusesPage() {
         totalSeats: parseInt(formData.totalSeats),
         status: formData.status,
         notes: formData.notes || undefined,
+        amenities: formData.amenities,
       };
 
       if (selectedBus) {
@@ -390,6 +441,15 @@ export function AdminBusesPage() {
                           </span>
                         )}
                       </div>
+                      {bus.amenities && bus.amenities.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {bus.amenities.map((amenity) => (
+                            <Badge key={amenity} variant="outline" className="text-xs">
+                              {getAmenityLabel(amenity)}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -488,6 +548,26 @@ export function AdminBusesPage() {
                       <SelectItem value="retired">{t('admin.buses.retiredStatus')}</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t('admin.buses.amenitiesLabel')}</Label>
+                <p className="text-xs text-muted-foreground">{t('admin.buses.amenitiesHelper')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {amenityOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      variant={formData.amenities.includes(option.value) ? 'secondary' : 'outline'}
+                      size="sm"
+                      className="gap-1"
+                      onClick={() => toggleAmenity(option.value)}
+                    >
+                      <option.icon className="h-3 w-3" />
+                      {option.label}
+                    </Button>
+                  ))}
                 </div>
               </div>
 

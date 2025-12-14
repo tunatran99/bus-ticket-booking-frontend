@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
+import type { LucideIcon } from 'lucide-react';
 import {
   Clock,
   MapPin,
@@ -15,12 +16,34 @@ import {
   Snowflake,
   Tv,
   Utensils,
+  BatteryCharging,
+  Bath,
+  Sparkles,
 } from 'lucide-react';
 import { tripsService, Trip } from '../services/trips.service';
 import { Skeleton } from '../components/ui/skeleton';
 import { useFeedbackDialog } from '../hooks/useFeedbackDialog';
 import { getErrorMessage } from '../services/error';
 import type { PassengerRouteState } from '../types/passenger';
+
+const AMENITY_CONFIG: Record<
+  string,
+  {
+    icon: LucideIcon;
+    label: string;
+  }
+> = {
+  wifi: { icon: Wifi, label: 'Free WiFi' },
+  snacks: { icon: Coffee, label: 'Complimentary snacks' },
+  entertainment: { icon: Tv, label: 'Onboard entertainment' },
+  charging: { icon: BatteryCharging, label: 'Charging ports' },
+  restroom: { icon: Bath, label: 'Restroom onboard' },
+  blanket: { icon: Sparkles, label: 'Blankets & pillows' },
+  climate: { icon: Snowflake, label: 'Climate control' },
+  meals: { icon: Utensils, label: 'Hot meals' },
+};
+
+const DEFAULT_AMENITIES = ['wifi', 'snacks', 'entertainment', 'charging', 'restroom'];
 
 interface TripDetailsState {
   numberOfTickets?: number | string;
@@ -116,14 +139,6 @@ export function TripDetails() {
     void navigate('/booking/passengers', { state: passengerState });
   };
 
-  const amenities = [
-    { icon: Wifi, name: 'Free WiFi' },
-    { icon: Coffee, name: 'Refreshments' },
-    { icon: Snowflake, name: 'Air Conditioning' },
-    { icon: Tv, name: 'Entertainment' },
-    { icon: Utensils, name: 'Meals' },
-  ];
-
   if (loading) {
     return (
       <Layout>
@@ -149,6 +164,8 @@ export function TripDetails() {
 
   const departure = formatDateTime(trip.departureTime);
   const arrival = trip.arrivalTime ? formatDateTime(trip.arrivalTime) : null;
+  const resolvedAmenities =
+    trip.bus?.amenities && trip.bus.amenities.length > 0 ? trip.bus.amenities : DEFAULT_AMENITIES;
 
   return (
     <Layout>
@@ -303,12 +320,16 @@ export function TripDetails() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {amenities.map((amenity, index) => {
-                    const Icon = amenity.icon;
+                  {resolvedAmenities.map((amenity) => {
+                    const config = AMENITY_CONFIG[amenity] ?? {
+                      icon: Sparkles,
+                      label: amenity,
+                    };
+                    const Icon = config.icon;
                     return (
-                      <div key={index} className="flex items-center gap-2">
+                      <div key={amenity} className="flex items-center gap-2">
                         <Icon className="size-5 text-primary" />
-                        <span>{amenity.name}</span>
+                        <span>{config.label}</span>
                       </div>
                     );
                   })}

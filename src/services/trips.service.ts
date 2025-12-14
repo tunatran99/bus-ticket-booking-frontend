@@ -9,6 +9,7 @@ export interface SearchTripsParams {
   minPrice?: number;
   maxPrice?: number;
   busType?: string;
+  amenities?: string[];
   sortBy?: 'price_asc' | 'price_desc' | 'time_asc' | 'time_desc' | 'duration_asc' | 'duration_desc';
   page?: number;
   limit?: number;
@@ -43,6 +44,7 @@ export interface Trip {
     brand?: string;
     model?: string;
     totalSeats: number;
+    amenities?: string[];
     seatLayouts?: Array<{
       id: number;
       seatNumber: string;

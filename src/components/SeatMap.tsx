@@ -14,30 +14,33 @@ export interface SeatDefinition {
 
 export type SeatLayoutRow = Array<SeatDefinition | null>;
 
-const baseRow = (row: number, status: Partial<Record<'A' | 'B' | 'C' | 'D', SeatStatus>> = {}) => [
+const baseRow = (
+  row: number,
+  status: Partial<Record<'A' | 'B' | 'C' | 'D', SeatStatus>> = {},
+): SeatLayoutRow => [
   {
     id: `${row}A`,
     label: `${row}A`,
-    type: 'standard',
+    type: 'standard' as SeatType,
     status: status.A,
   },
   {
     id: `${row}B`,
     label: `${row}B`,
-    type: 'standard',
+    type: 'standard' as SeatType,
     status: status.B,
   },
   null,
   {
     id: `${row}C`,
     label: `${row}C`,
-    type: row <= 2 ? 'vip' : 'standard',
+    type: (row <= 2 ? 'vip' : 'standard') as SeatType,
     status: status.C,
   },
   {
     id: `${row}D`,
     label: `${row}D`,
-    type: row <= 2 ? 'vip' : 'standard',
+    type: (row <= 2 ? 'vip' : 'standard') as SeatType,
     status: status.D,
   },
 ];
