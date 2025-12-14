@@ -39,19 +39,27 @@ export function AdminUserEditModal({ open, user, onClose, onSave }: AdminUserEdi
 
   if (!form) return null;
 
+  interface PatchResponse {
+    data: {
+      data: AdminUser;
+    };
+  }
+
   const handleSubmit = async () => {
-    const res = await apiClient.patch(`/user/${form.id}`, {
+    const res = await apiClient.patch<PatchResponse['data']>(`/user/${form.id}`, {
       fullName: form.fullName,
       email: form.email,
       role: form.role,
       status: form.status,
     });
-    const updated = res.data?.data as AdminUser;
-    onSave(updated);
+    const updated = res.data?.data;
+    if (updated) {
+      onSave(updated);
+    }
   };
 
   return (
-  <Dialog open={open} onOpenChange={(nextOpen: boolean) => !nextOpen && onClose()}>
+    <Dialog open={open} onOpenChange={(nextOpen: boolean) => !nextOpen && onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Account</DialogTitle>
@@ -76,10 +84,7 @@ export function AdminUserEditModal({ open, user, onClose, onSave }: AdminUserEdi
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Role</label>
-            <Select
-              value={form.role}
-              onValueChange={(role: string) => setForm({ ...form, role })}
-            >
+            <Select value={form.role} onValueChange={(role: string) => setForm({ ...form, role })}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -93,9 +98,7 @@ export function AdminUserEditModal({ open, user, onClose, onSave }: AdminUserEdi
             <label className="text-sm font-medium">Status</label>
             <Select
               value={form.status}
-              onValueChange={(status: UserStatus) =>
-                setForm({ ...form, status })
-              }
+              onValueChange={(status: UserStatus) => setForm({ ...form, status })}
             >
               <SelectTrigger>
                 <SelectValue />

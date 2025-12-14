@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authService, User as BackendUser } from '../services/auth.service';
+import { getErrorMessage } from '../services/error';
 
 export interface User {
   id: string;
@@ -11,65 +12,98 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, fromTokens?: boolean) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
+  isReady: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function mapBackendUser(u: BackendUser): User {
-  return {
+  console.log('mapBackendUser - Backend user:', u);
+  const mapped = {
     id: u.userId,
     name: u.fullName,
     email: u.email,
     phone: u.phone,
     role: u.role,
   };
+  console.log('mapBackendUser - Mapped user:', mapped);
+  return mapped;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
     // On mount, if we have a refresh token, try to fetch current user
     const bootstrap = async () => {
       try {
-        if (authService.isAuthenticated()) {
+        const authenticated = authService.isAuthenticated();
+        setHasSession(authenticated);
+        console.log('[AuthContext] Bootstrap - isAuthenticated:', authenticated);
+        if (authenticated) {
+          console.log('[AuthContext] Fetching current user...');
           const me = await authService.currentUser();
-          setUser(mapBackendUser(me));
+          console.log('[AuthContext] Current user response:', me);
+          const mapped = mapBackendUser(me);
+          console.log('[AuthContext] Setting user:', mapped);
+          setUser(mapped);
+        } else {
+          console.log('[AuthContext] Not authenticated, user will be null');
         }
-      } catch {
+      } catch (error) {
+        console.error('[AuthContext] Bootstrap error:', error);
         // ignore, user will be treated as logged out
       } finally {
         setIsReady(true);
+        console.log('[AuthContext] Bootstrap complete, isReady: true');
       }
     };
-    bootstrap();
+    void bootstrap();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const res = await authService.login({ identifier: email, password });
-    if (res.data.user) {
-      setUser(mapBackendUser(res.data.user));
-    } else {
-      // Fallback: fetch profile
+  const login = async (email: string, password: string, fromTokens = false) => {
+    try {
+      if (fromTokens) {
+        const me = await authService.currentUser();
+        const mapped = mapBackendUser(me);
+        console.log('[AuthContext] Login from tokens - user:', mapped);
+        setUser(mapped);
+        setHasSession(true);
+        return;
+      }
+
+      const res = await authService.login({ identifier: email, password });
+      console.log('[AuthContext] Login response:', res.data);
+
       const me = await authService.currentUser();
-      setUser(mapBackendUser(me));
+      const mapped = mapBackendUser(me);
+      console.log('[AuthContext] Login - fetched user:', mapped);
+      setUser(mapped);
+      setHasSession(true);
+    } catch (error) {
+      console.error('[AuthContext] Login error:', error);
+      throw new Error(getErrorMessage(error, 'Unable to login'));
     }
   };
 
   const signup = async (name: string, email: string, password: string) => {
-    await authService.register({
-      fullName: name,
-      email,
-      phone: '',
-      password,
-    });
-    // After successful registration, log the user in
-    await login(email, password);
+    try {
+      await authService.register({
+        fullName: name,
+        email,
+        password,
+      });
+      await login(email, password);
+    } catch (error) {
+      console.error('[AuthContext] Signup error:', error);
+      throw new Error(getErrorMessage(error, 'Unable to create account'));
+    }
   };
 
   const logout = async () => {
@@ -77,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authService.logout();
     } finally {
       setUser(null);
+      setHasSession(false);
     }
   };
 
@@ -85,7 +120,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     signup,
     logout,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user || hasSession,
+    isReady,
   };
 
   if (!isReady) {

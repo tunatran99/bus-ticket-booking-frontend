@@ -4,7 +4,13 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import { Menu, Bus, User, LogOut } from 'lucide-react';
+import { Menu, Bus, User, LogOut, Settings } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 import { useState } from 'react';
 
 export function Navigation() {
@@ -15,16 +21,16 @@ export function Navigation() {
 
   const handleAuthClick = () => {
     if (isAuthenticated) {
-      navigate('/profile');
+      void navigate('/profile');
     } else {
-      navigate('/login');
+      void navigate('/login');
     }
     setOpen(false);
   };
 
   const handleLogout = () => {
-    logout();
-    navigate('/');
+    void logout();
+    void navigate('/');
     setOpen(false);
   };
 
@@ -64,6 +70,29 @@ export function Navigation() {
             <LanguageSwitcher />
             {isAuthenticated ? (
               <>
+                {user?.role === 'admin' && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <Settings className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/users">{t('admin.common.users')}</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/routes">{t('admin.common.routes')}</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/buses">{t('admin.common.buses')}</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/trips">{t('admin.common.trips')}</Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 <Button onClick={handleAuthClick} variant="ghost" className="gap-2">
                   <User className="size-4" />
                   {user?.name}
@@ -73,9 +102,7 @@ export function Navigation() {
                 </Button>
               </>
             ) : (
-              <Button onClick={handleAuthClick}>
-                {t('auth.login')}
-              </Button>
+              <Button onClick={handleAuthClick}>{t('auth.login')}</Button>
             )}
           </div>
 
@@ -100,6 +127,41 @@ export function Navigation() {
                       {link.label}
                     </Link>
                   ))}
+                  {isAuthenticated && user?.role === 'admin' && (
+                    <div className="border-t pt-4 mt-4">
+                      <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">
+                        {t('admin.common.admin')}
+                      </div>
+                      <Link
+                        to="/admin/users"
+                        onClick={() => setOpen(false)}
+                        className="block text-muted-foreground hover:text-foreground transition-colors py-2 px-2"
+                      >
+                        {t('admin.common.users')}
+                      </Link>
+                      <Link
+                        to="/admin/routes"
+                        onClick={() => setOpen(false)}
+                        className="block text-muted-foreground hover:text-foreground transition-colors py-2 px-2"
+                      >
+                        {t('admin.common.routes')}
+                      </Link>
+                      <Link
+                        to="/admin/buses"
+                        onClick={() => setOpen(false)}
+                        className="block text-muted-foreground hover:text-foreground transition-colors py-2 px-2"
+                      >
+                        {t('admin.common.buses')}
+                      </Link>
+                      <Link
+                        to="/admin/trips"
+                        onClick={() => setOpen(false)}
+                        className="block text-muted-foreground hover:text-foreground transition-colors py-2 px-2"
+                      >
+                        {t('admin.common.trips')}
+                      </Link>
+                    </div>
+                  )}
                   <div className="border-t pt-4 mt-4">
                     {isAuthenticated ? (
                       <>

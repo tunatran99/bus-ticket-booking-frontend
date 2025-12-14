@@ -5,7 +5,7 @@ import { scheduleAutoRefresh, clearAutoRefresh } from './autoRefresh';
 
 export interface RegisterData {
   email: string;
-  phone: string;
+  phone?: string;
   password: string;
   fullName: string;
   role?: string;
@@ -36,23 +36,49 @@ export interface AuthResponse {
   message?: string;
 }
 
+interface LoginResponse {
+  data: {
+    accessToken?: string;
+    refreshToken?: string;
+    expiresIn?: number;
+  };
+}
+
+interface CurrentUserResponse {
+  data: {
+    data: User;
+  };
+}
+
+interface RefreshResponse {
+  data: {
+    data: {
+      accessToken?: string;
+      expiresIn?: number;
+    };
+  };
+}
+
 export const authService = {
   async register(data: RegisterData): Promise<AuthResponse> {
-    const response = await apiClient.post('/user/register', data);
+    const response = await apiClient.post<AuthResponse>('/user/register', data);
     return response.data;
   },
 
   async login(data: LoginData): Promise<AuthResponse> {
-    const response = await apiClient.post('/user/login', data);
+    const response = await apiClient.post<LoginResponse>('/user/login', data);
     const { accessToken, refreshToken } = response.data.data;
 
     if (accessToken) tokenStore.setAccessToken(accessToken);
     if (refreshToken) tokenStore.setRefreshToken(refreshToken);
-    if (response.data.data?.expiresIn) {
-      scheduleAutoRefresh(response.data.data.expiresIn, () => this.refreshWithStoredToken());
+    const expiresIn = response.data.data?.expiresIn;
+    if (expiresIn) {
+      scheduleAutoRefresh(expiresIn, () => {
+        void authService.refreshWithStoredToken();
+      });
     }
 
-    return response.data;
+    return response.data as AuthResponse;
   },
 
   async logout(): Promise<void> {
@@ -65,19 +91,23 @@ export const authService = {
   },
 
   async currentUser(): Promise<User> {
-    const response = await apiClient.get('/user/me');
+    const response = await apiClient.get<CurrentUserResponse>('/user/me');
     return response.data.data;
   },
 
   async refreshWithStoredToken(): Promise<string | null> {
     const refreshToken = tokenStore.getRefreshToken();
     if (!refreshToken) return null;
-    const response = await axios.post(`${API_BASE_URL}/user/refresh`, { refreshToken });
+    const response = await axios.post<RefreshResponse['data']>(`${API_BASE_URL}/user/refresh`, {
+      refreshToken,
+    });
     const { accessToken, expiresIn } = response.data.data || {};
     if (accessToken) {
       tokenStore.setAccessToken(accessToken);
       if (expiresIn) {
-        scheduleAutoRefresh(expiresIn, () => this.refreshWithStoredToken());
+        scheduleAutoRefresh(expiresIn, () => {
+          void authService.refreshWithStoredToken();
+        });
       }
       return accessToken;
     }
@@ -85,7 +115,10 @@ export const authService = {
   },
 
   async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.post('/user/forgot-password', { email });
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+      '/user/forgot-password',
+      { email },
+    );
     return response.data;
   },
 

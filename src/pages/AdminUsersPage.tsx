@@ -19,6 +19,33 @@ interface AdminUser {
   lastLogin: string;
 }
 
+type ApiResponse<T> = {
+  data: T;
+};
+
+type ApiUserRecord = {
+  id?: string;
+  _id?: string;
+  fullName?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  status?: UserStatus;
+  isActive?: boolean;
+  lastLogin?: string;
+};
+
+function mapApiUser(user: ApiUserRecord): AdminUser {
+  return {
+    id: user.id ?? user._id ?? 'unknown',
+    fullName: user.fullName ?? user.name ?? 'Unknown',
+    email: user.email ?? 'unknown@example.com',
+    role: user.role ?? 'passenger',
+    status: user.status ?? (user.isActive ? 'active' : 'blocked'),
+    lastLogin: user.lastLogin ?? '—',
+  };
+}
+
 interface Summary {
   totalUsers: number;
   activeUsers: number;
@@ -38,17 +65,10 @@ export function AdminUsersPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const usersRes = await apiClient.get('/user/all');
-        const usersData = (usersRes.data?.data || []) as any[];
+        const usersRes = await apiClient.get<ApiResponse<ApiUserRecord[]>>('/user/all');
+        const usersData = usersRes.data?.data ?? [];
 
-        const mappedUsers: AdminUser[] = usersData.map((u) => ({
-          id: u.id ?? u._id ?? '',
-          fullName: u.fullName ?? u.name ?? 'Unknown',
-          email: u.email ?? '',
-          role: u.role ?? 'passenger',
-          status: (u.status ?? (u.isActive ? 'active' : 'blocked')) as UserStatus,
-          lastLogin: u.lastLogin ?? '—',
-        }));
+        const mappedUsers = usersData.map(mapApiUser);
 
         const summaryData: Summary = {
           totalUsers: mappedUsers.length,
@@ -60,12 +80,14 @@ export function AdminUsersPage() {
         setSummary(summaryData);
         setUsers(mappedUsers);
         setFilteredUsers(mappedUsers);
+      } catch (error) {
+        console.error('Failed to load users', error);
       } finally {
         setLoading(false);
       }
     };
 
-    load();
+    void load();
   }, []);
 
   useEffect(() => {
@@ -90,8 +112,10 @@ export function AdminUsersPage() {
   };
 
   const handleStatusToggle = async (id: string, nextStatus: UserStatus) => {
-    const res = await apiClient.patch(`/user/${id}`, { status: nextStatus });
-    const updated = res.data?.data as AdminUser;
+    const res = await apiClient.patch<ApiResponse<ApiUserRecord>>(`/user/${id}`, {
+      status: nextStatus,
+    });
+    const updated = mapApiUser(res.data?.data ?? {});
     setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
   };
 
@@ -116,9 +140,7 @@ export function AdminUsersPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="mb-1 text-xl font-semibold">Users Management</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage system users and their access
-            </p>
+            <p className="text-sm text-muted-foreground">Manage system users and their access</p>
           </div>
         </div>
 
@@ -234,7 +256,7 @@ export function AdminUsersPage() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => handleResetPassword(user.id)}
+                              onClick={() => void handleResetPassword(user.id)}
                               title="Reset password"
                             >
                               <Key className="h-4 w-4 text-primary" />
@@ -243,7 +265,7 @@ export function AdminUsersPage() {
                               variant={user.status === 'active' ? 'outline' : 'default'}
                               size="sm"
                               onClick={() =>
-                                handleStatusToggle(
+                                void handleStatusToggle(
                                   user.id,
                                   user.status === 'active' ? 'blocked' : 'active',
                                 )

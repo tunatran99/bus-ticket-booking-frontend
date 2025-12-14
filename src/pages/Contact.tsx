@@ -6,13 +6,19 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Mail, Phone, MapPin, Clock } from 'lucide-react';
+import { useFeedbackDialog } from '../hooks/useFeedbackDialog';
 
 export function Contact() {
   const { t } = useLanguage();
+  const { showDialog, dialog } = useFeedbackDialog();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Message sent! We will get back to you soon.');
+    showDialog({
+      title: t('contact.formTitle'),
+      description: t('contact.successAlert'),
+      confirmLabel: t('common.close') || 'Close',
+    });
   };
 
   return (
@@ -21,9 +27,7 @@ export function Contact() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="mb-4">{t('nav.contact')}</h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
-            </p>
+            <p className="text-muted-foreground max-w-2xl mx-auto">{t('contact.heroSubtitle')}</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -31,8 +35,8 @@ export function Contact() {
             <div className="lg:col-span-1 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Get in Touch</CardTitle>
-                  <CardDescription>We're here to help you</CardDescription>
+                  <CardTitle>{t('contact.infoCardTitle')}</CardTitle>
+                  <CardDescription>{t('contact.infoCardDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex items-start gap-4">
@@ -40,9 +44,9 @@ export function Contact() {
                       <Phone className="size-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="mb-1">Phone</h3>
+                      <h3 className="mb-1">{t('contact.phoneTitle')}</h3>
                       <p className="text-sm text-muted-foreground">1900 123 456</p>
-                      <p className="text-sm text-muted-foreground">Mon-Sun 24/7</p>
+                      <p className="text-sm text-muted-foreground">{t('contact.phoneHours')}</p>
                     </div>
                   </div>
 
@@ -51,7 +55,7 @@ export function Contact() {
                       <Mail className="size-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="mb-1">Email</h3>
+                      <h3 className="mb-1">{t('contact.emailTitle')}</h3>
                       <p className="text-sm text-muted-foreground">support@busticket.com</p>
                       <p className="text-sm text-muted-foreground">info@busticket.com</p>
                     </div>
@@ -62,9 +66,10 @@ export function Contact() {
                       <MapPin className="size-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="mb-1">Office</h3>
+                      <h3 className="mb-1">{t('contact.officeTitle')}</h3>
                       <p className="text-sm text-muted-foreground">
-                        123 Main Street<br />
+                        123 Main Street
+                        <br />
                         Hanoi, Vietnam
                       </p>
                     </div>
@@ -75,10 +80,9 @@ export function Contact() {
                       <Clock className="size-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="mb-1">Business Hours</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Mon - Fri: 8:00 AM - 8:00 PM<br />
-                        Sat - Sun: 9:00 AM - 6:00 PM
+                      <h3 className="mb-1">{t('contact.hoursTitle')}</h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">
+                        {t('contact.hoursText')}
                       </p>
                     </div>
                   </div>
@@ -90,50 +94,50 @@ export function Contact() {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Send us a Message</CardTitle>
-                  <CardDescription>Fill out the form below and we'll get back to you shortly</CardDescription>
+                  <CardTitle>{t('contact.formTitle')}</CardTitle>
+                  <CardDescription>{t('contact.formDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
+                        <Label htmlFor="firstName">{t('contact.firstName')}</Label>
                         <Input id="firstName" placeholder="John" required />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
+                        <Label htmlFor="lastName">{t('contact.lastName')}</Label>
                         <Input id="lastName" placeholder="Doe" required />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email">{t('contact.email')}</Label>
                         <Input id="email" type="email" placeholder="john@example.com" required />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
+                        <Label htmlFor="phone">{t('contact.phone')}</Label>
                         <Input id="phone" type="tel" placeholder="+84 123 456 789" />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="subject">Subject</Label>
-                      <Input id="subject" placeholder="How can we help you?" required />
+                      <Label htmlFor="subject">{t('contact.subject')}</Label>
+                      <Input id="subject" placeholder={t('contact.subjectPlaceholder')} required />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="message">Message</Label>
+                      <Label htmlFor="message">{t('contact.message')}</Label>
                       <Textarea
                         id="message"
-                        placeholder="Tell us more about your inquiry..."
+                        placeholder={t('contact.messagePlaceholder')}
                         className="min-h-[150px]"
                         required
                       />
                     </div>
 
                     <Button type="submit" size="lg" className="w-full md:w-auto">
-                      Send Message
+                      {t('contact.sendMessage')}
                     </Button>
                   </form>
                 </CardContent>
@@ -160,6 +164,7 @@ export function Contact() {
           </Card>
         </div>
       </div>
+      {dialog}
     </Layout>
   );
 }

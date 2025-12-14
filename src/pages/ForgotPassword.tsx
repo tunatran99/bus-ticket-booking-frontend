@@ -4,7 +4,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Bus, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -15,10 +14,10 @@ export function ForgotPassword() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { t } = useLanguage();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Mock password reset - in real app, this would call an API
-    setTimeout(() => {
+    window.setTimeout(() => {
       setIsSubmitted(true);
     }, 500);
   };
@@ -51,7 +50,7 @@ export function ForgotPassword() {
               <div className="mb-8">
                 <h1 className="mb-2">{t('auth.forgotPassword')}</h1>
                 <p className="text-muted-foreground">
-                  No worries, we'll send you reset instructions.
+                  No worries, we&apos;ll send you reset instructions.
                 </p>
               </div>
 
@@ -96,25 +95,20 @@ export function ForgotPassword() {
                   <CheckCircle2 className="size-8 text-primary" />
                 </div>
                 <h1 className="mb-2">Check Your Email</h1>
-                <p className="text-muted-foreground">
-                  We've sent a password reset link to
-                </p>
+                <p className="text-muted-foreground">We&apos;ve sent a password reset link to</p>
                 <p className="text-muted-foreground mt-1">{email}</p>
               </div>
 
               <Alert className="mb-6">
                 <Mail className="size-4" />
                 <AlertDescription>
-                  Didn't receive the email? Check your spam folder or try another email address.
+                  Didn&apos;t receive the email? Check your spam folder or try another email
+                  address.
                 </AlertDescription>
               </Alert>
 
               <div className="space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setIsSubmitted(false)}
-                >
+                <Button variant="outline" className="w-full" onClick={() => setIsSubmitted(false)}>
                   Try Another Email
                 </Button>
                 <Link to="/login" className="block">
@@ -127,7 +121,8 @@ export function ForgotPassword() {
 
               <div className="mt-8 p-4 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Note:</strong> The password reset link will expire in 24 hours. If you don't see the email, please contact support.
+                  <strong>Note:</strong> The password reset link will expire in 24 hours. If you
+                  don&apos;t see the email, please contact support.
                 </p>
               </div>
             </>
@@ -146,7 +141,8 @@ export function ForgotPassword() {
         <div className="absolute bottom-0 left-0 right-0 p-12 text-white">
           <h2 className="mb-4">Secure Account Recovery</h2>
           <p className="text-white/90 max-w-md">
-            Your account security is our priority. We'll help you regain access safely and quickly.
+            Your account security is our priority. We&apos;ll help you regain access safely and
+            quickly.
           </p>
         </div>
       </div>

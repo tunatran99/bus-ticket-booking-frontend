@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -7,36 +7,52 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Checkbox } from '../components/ui/checkbox';
 import { Separator } from '../components/ui/separator';
-import { Bus, Mail, Lock, User as UserIcon, ArrowRight } from 'lucide-react';
+import { Bus, Mail, Lock, User as UserIcon, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { useFeedbackDialog } from '../hooks/useFeedbackDialog';
+import { getErrorMessage } from '../services/error';
 
 export function Signup() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const { signup } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { showDialog, dialog } = useFeedbackDialog();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert('Passwords do not match!');
+      showDialog({
+        title: t('auth.signup'),
+        description: t('signupPage.errors.passwordMismatch'),
+      });
       return;
     }
     if (!agreeToTerms) {
-      alert('Please agree to the terms and conditions');
+      showDialog({
+        title: t('auth.signup'),
+        description: t('signupPage.errors.terms'),
+      });
       return;
     }
-    try {
-      await signup(name, email, password);
-      navigate('/');
-    } catch (error) {
-      console.error('Signup failed:', error);
-    }
+    const submit = async () => {
+      try {
+        await signup(name, email, password);
+        void navigate('/');
+      } catch (error) {
+        const message = getErrorMessage(error, t('signupPage.errors.generic'));
+        showDialog({ title: t('auth.signup'), description: message });
+      }
+    };
+
+    void submit();
   };
 
   return (
@@ -72,9 +88,7 @@ export function Signup() {
 
           <div className="mb-8">
             <h1 className="mb-2">{t('auth.signup')}</h1>
-            <p className="text-muted-foreground">
-              Create your account to start booking tickets
-            </p>
+            <p className="text-muted-foreground">Create your account to start booking tickets</p>
           </div>
 
           {/* Signup Form */}
@@ -114,32 +128,50 @@ export function Signup() {
             <div className="space-y-2">
               <Label htmlFor="password">{t('auth.password')}</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground z-10 pointer-events-none" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 pr-12"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-3 flex items-center justify-center text-muted-foreground hover:text-foreground z-20"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground z-10 pointer-events-none" />
                 <Input
                   id="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 pr-12"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-3 flex items-center justify-center text-muted-foreground hover:text-foreground z-20"
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
               </div>
             </div>
 
@@ -173,13 +205,11 @@ export function Signup() {
                 <Separator />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or sign up with
-                </span>
+                <span className="bg-background px-2 text-muted-foreground">Or sign up with</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mt-6">
+            <div className="grid grid-cols-4 gap-3 mt-6">
               <Button variant="outline" type="button">
                 <svg className="size-4 mr-2" viewBox="0 0 24 24">
                   <path
@@ -199,13 +229,7 @@ export function Signup() {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                Google
-              </Button>
-              <Button variant="outline" type="button">
-                <svg className="size-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                Facebook
+                Sign up with Google
               </Button>
             </div>
           </div>
@@ -218,6 +242,7 @@ export function Signup() {
           </div>
         </div>
       </div>
+      {dialog}
     </div>
   );
 }

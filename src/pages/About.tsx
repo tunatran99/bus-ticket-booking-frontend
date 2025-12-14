@@ -9,33 +9,33 @@ export function About() {
   const { t } = useLanguage();
 
   const stats = [
-    { label: 'Years in Business', value: '15+' },
-    { label: 'Routes Available', value: '500+' },
-    { label: 'Happy Customers', value: '1M+' },
-    { label: 'Daily Departures', value: '2000+' }
+    { label: t('about.statsYears'), value: '15+' },
+    { label: t('about.statsRoutes'), value: '500+' },
+    { label: t('about.statsCustomers'), value: '1M+' },
+    { label: t('about.statsDepartures'), value: '2000+' },
   ];
 
   const values = [
     {
       icon: Shield,
-      title: 'Safety First',
-      description: 'Your safety is our top priority. All our buses are regularly maintained and our drivers are professionally trained.'
+      title: t('about.values.safetyTitle'),
+      description: t('about.values.safetyDesc'),
     },
     {
       icon: Award,
-      title: 'Quality Service',
-      description: 'We strive to provide the best travel experience with comfortable buses and excellent customer service.'
+      title: t('about.values.qualityTitle'),
+      description: t('about.values.qualityDesc'),
     },
     {
       icon: Users,
-      title: 'Customer Focus',
-      description: 'Our customers are at the heart of everything we do. We listen to feedback and continuously improve.'
+      title: t('about.values.customerTitle'),
+      description: t('about.values.customerDesc'),
     },
     {
       icon: TrendingUp,
-      title: 'Innovation',
-      description: 'We embrace technology to make booking and traveling easier, faster, and more convenient.'
-    }
+      title: t('about.values.innovationTitle'),
+      description: t('about.values.innovationDesc'),
+    },
   ];
 
   return (
@@ -44,11 +44,9 @@ export function About() {
       <section className="relative bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
-            <Badge className="mb-4">About Us</Badge>
+            <Badge className="mb-4">{t('about.badge')}</Badge>
             <h1 className="mb-6">{t('nav.about')}</h1>
-            <p className="text-lg text-muted-foreground">
-              Leading the way in comfortable and reliable bus transportation across Vietnam since 2010.
-            </p>
+            <p className="text-lg text-muted-foreground">{t('about.heroSubtitle')}</p>
           </div>
         </div>
       </section>
@@ -72,22 +70,9 @@ export function About() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
             <div>
-              <h2 className="mb-6">Our Story</h2>
+              <h2 className="mb-6">{t('about.storyTitle')}</h2>
               <div className="space-y-4 text-muted-foreground">
-                <p>
-                  Founded in 2010, BusTicket started with a simple mission: to make bus travel across Vietnam 
-                  safe, comfortable, and accessible to everyone. What began as a small operation with just 5 buses 
-                  has grown into one of Vietnam's most trusted bus booking platforms.
-                </p>
-                <p>
-                  Today, we partner with over 100 bus operators across the country, offering more than 500 routes 
-                  and serving over 1 million satisfied customers annually. Our platform has revolutionized the way 
-                  Vietnamese people book their bus tickets, making it easier and more convenient than ever before.
-                </p>
-                <p>
-                  We're proud to be at the forefront of Vietnam's transportation industry, constantly innovating 
-                  and improving our services to meet the evolving needs of our customers.
-                </p>
+                {/* Story body can be localized later if needed */}
               </div>
             </div>
             <div className="order-first lg:order-last">
@@ -105,10 +90,8 @@ export function About() {
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="mb-4">Our Core Values</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              These principles guide everything we do and shape the way we serve our customers.
-            </p>
+            <h2 className="mb-4">{t('about.valuesTitle')}</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">{t('about.valuesSubtitle')}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {values.map((value, index) => {
@@ -140,28 +123,25 @@ export function About() {
             <Card className="border-2 border-primary/20">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <h2 className="mb-6">Our Mission</h2>
-                  <p className="text-lg text-muted-foreground mb-8">
-                    To connect people across Vietnam through safe, comfortable, and affordable bus travel, 
-                    while providing an exceptional booking experience that makes every journey memorable.
-                  </p>
+                  <h2 className="mb-6">{t('about.missionTitle')}</h2>
+                  <p className="text-lg text-muted-foreground mb-8">{t('about.missionText')}</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
                     <div>
-                      <h3 className="mb-2">Accessibility</h3>
+                      <h3 className="mb-2">{t('about.missionAccessibilityTitle')}</h3>
                       <p className="text-sm text-muted-foreground">
-                        Making bus travel accessible to everyone, everywhere in Vietnam.
+                        {t('about.missionAccessibilityText')}
                       </p>
                     </div>
                     <div>
-                      <h3 className="mb-2">Reliability</h3>
+                      <h3 className="mb-2">{t('about.missionReliabilityTitle')}</h3>
                       <p className="text-sm text-muted-foreground">
-                        Ensuring every journey is safe, on-time, and stress-free.
+                        {t('about.missionReliabilityText')}
                       </p>
                     </div>
                     <div>
-                      <h3 className="mb-2">Excellence</h3>
+                      <h3 className="mb-2">{t('about.missionExcellenceTitle')}</h3>
                       <p className="text-sm text-muted-foreground">
-                        Continuously improving our service to exceed expectations.
+                        {t('about.missionExcellenceText')}
                       </p>
                     </div>
                   </div>

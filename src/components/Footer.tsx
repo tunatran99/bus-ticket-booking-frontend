@@ -10,7 +10,15 @@ export function Footer() {
     { to: '/routes', label: t('nav.routes') },
     { to: '/my-tickets', label: t('nav.myTickets') },
     { to: '/about', label: t('nav.about') },
-    { to: '/contact', label: t('nav.contact') }
+    { to: '/contact', label: t('nav.contact') },
+  ];
+
+  const supportLinks = [
+    { to: '/help', label: t('footer.supportLinks.bookingGuide') },
+    { to: '/faq', label: t('footer.supportLinks.paymentOptions') },
+    { to: '/terms', label: t('footer.supportLinks.ticketPolicies') },
+    { to: '/contact', label: t('footer.supportLinks.customerCare') },
+    { to: '/travel-updates', label: t('footer.supportLinks.travelAlerts') },
   ];
 
   return (
@@ -23,9 +31,7 @@ export function Footer() {
               <Bus className="size-6 text-primary" />
               <span className="font-semibold">BusTicket</span>
             </Link>
-            <p className="text-sm text-muted-foreground mb-4">
-              {t('home.subtitle')}
-            </p>
+            <p className="text-sm text-muted-foreground mb-4">{t('home.subtitle')}</p>
             <div className="flex gap-3">
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
                 <Facebook className="size-5" />
@@ -44,7 +50,7 @@ export function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="mb-4">Quick Links</h3>
+            <h3 className="mb-4">{t('footer.quickLinksTitle')}</h3>
             <ul className="space-y-2">
               {quickLinks.map((link) => (
                 <li key={link.to}>
@@ -61,43 +67,25 @@ export function Footer() {
 
           {/* Support */}
           <div>
-            <h3 className="mb-4">Support</h3>
+            <h3 className="mb-4">{t('footer.supportTitle')}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link to="/help" className="hover:text-primary transition-colors">
-                  Help Center
-                </Link>
-              </li>
-              <li>
-                <Link to="/faq" className="hover:text-primary transition-colors">
-                  FAQs
-                </Link>
-              </li>
-              <li>
-                <Link to="/terms" className="hover:text-primary transition-colors">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link to="/privacy" className="hover:text-primary transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link to="/refund" className="hover:text-primary transition-colors">
-                  Refund Policy
-                </Link>
-              </li>
+              {supportLinks.map((item) => (
+                <li key={item.to}>
+                  <Link to={item.to} className="hover:text-primary transition-colors">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h3 className="mb-4">Contact Us</h3>
+            <h3 className="mb-4">{t('footer.contactTitle')}</h3>
             <ul className="space-y-3">
               <li className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin className="size-4 mt-0.5 flex-shrink-0" />
-                <span>123 Main Street, Hanoi, Vietnam</span>
+                <span>{t('footer.contact.address')}</span>
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Phone className="size-4 flex-shrink-0" />
@@ -107,7 +95,10 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Mail className="size-4 flex-shrink-0" />
-                <a href="mailto:support@busticket.com" className="hover:text-primary transition-colors">
+                <a
+                  href="mailto:support@busticket.com"
+                  className="hover:text-primary transition-colors"
+                >
                   support@busticket.com
                 </a>
               </li>

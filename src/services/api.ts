@@ -1,4 +1,8 @@
-import axios from 'axios';
+import axios, {
+  type AxiosRequestConfig,
+  type AxiosError,
+  type InternalAxiosRequestConfig,
+} from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { tokenStore } from './tokenStore';
 
@@ -12,22 +16,26 @@ const apiClient = axios.create({
   },
 });
 
+interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
 apiClient.interceptors.request.use(
-  (config: any) => {
+  (config: InternalAxiosRequestConfig) => {
     config.headers = config.headers || {};
 
     // Add X-Request-ID
-    (config.headers as any)['X-Request-ID'] = uuidv4();
+    config.headers['X-Request-ID'] = uuidv4();
 
     // Add Authorization token if available
     const token = tokenStore.getAccessToken();
     if (token) {
-      (config.headers as any).Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;
   },
-  (error: any) => Promise.reject(error)
+  (error: AxiosError) => Promise.reject(error),
 );
 
 let isRefreshing = false;
@@ -42,19 +50,27 @@ function onRefreshed(token: string) {
   refreshSubscribers = [];
 }
 
-apiClient.interceptors.response.use(
-  (response: any) => response,
-  async (error: any) => {
-    const originalRequest = error.config;
+interface RefreshResponse {
+  data: {
+    data: {
+      accessToken: string;
+    };
+  };
+}
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      const url: string = originalRequest?.url || '';
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as ExtendedAxiosRequestConfig | undefined;
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      const url: string = originalRequest.url || '';
       const isAuthEndpoint =
         url.includes('/user/login') ||
         url.includes('/user/register') ||
         url.includes('/user/forgot-password') ||
         url.includes('/user/refresh');
-      const hadAuthHeader = Boolean(originalRequest?.headers?.Authorization);
+      const hadAuthHeader = Boolean(originalRequest.headers?.Authorization);
 
       if (isAuthEndpoint || !hadAuthHeader) {
         return Promise.reject(error);
@@ -71,13 +87,18 @@ apiClient.interceptors.response.use(
         if (!isRefreshing) {
           isRefreshing = true;
           try {
-            const response = await axios.post(`${API_BASE_URL}/user/refresh`, {
-              refreshToken,
-            });
+            const response = await axios.post<RefreshResponse['data']>(
+              `${API_BASE_URL}/user/refresh`,
+              {
+                refreshToken,
+              },
+            );
             const { accessToken } = response.data.data;
-            tokenStore.setAccessToken(accessToken);
-            isRefreshing = false;
-            onRefreshed(accessToken);
+            if (accessToken) {
+              tokenStore.setAccessToken(accessToken);
+              isRefreshing = false;
+              onRefreshed(accessToken);
+            }
           } catch (refreshError) {
             isRefreshing = false;
             tokenStore.clearAll();
@@ -88,8 +109,10 @@ apiClient.interceptors.response.use(
 
         return new Promise((resolve) => {
           subscribeTokenRefresh((newToken: string) => {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            resolve(apiClient(originalRequest));
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            }
+            resolve(apiClient(originalRequest as AxiosRequestConfig));
           });
         });
       } catch (refreshError) {
@@ -98,7 +121,7 @@ apiClient.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default apiClient;

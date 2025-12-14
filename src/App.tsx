@@ -7,6 +7,10 @@ import { Signup } from './pages/Signup';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { Profile } from './pages/Profile';
 import { RouteSelection } from './pages/RouteSelection';
+import { TripSearchResults } from './pages/TripSearchResults';
+import { TripDetails } from './pages/TripDetails';
+import { BookingReview } from './pages/BookingReview';
+import { PassengerDetails } from './pages/PassengerDetails';
 import { MyTickets } from './pages/MyTickets';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
@@ -15,6 +19,10 @@ import { Dashboard } from './pages/Dashboard';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { AdminRoute } from './routes/AdminRoute';
 import { AdminUsersPage } from './pages/AdminUsersPage';
+import { AdminTripsPage } from './pages/AdminTripsPage';
+import { AdminRoutesPage } from './pages/AdminRoutesPage';
+import { AdminBusesPage } from './pages/AdminBusesPage';
+import { GoogleCallback } from './pages/GoogleCallback';
 
 export default function App() {
   return (
@@ -26,6 +34,7 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/oauth/google/callback" element={<GoogleCallback />} />
             <Route
               path="/profile"
               element={
@@ -53,10 +62,58 @@ export default function App() {
               }
             />
             <Route
+              path="/admin/trips"
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AdminTripsPage />
+                  </AdminRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/routes"
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AdminRoutesPage />
+                  </AdminRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/buses"
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AdminBusesPage />
+                  </AdminRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/routes"
               element={
                 <ProtectedRoute>
                   <RouteSelection />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/booking/passengers"
+              element={
+                <ProtectedRoute>
+                  <PassengerDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/search" element={<TripSearchResults />} />
+            <Route path="/trips/:id" element={<TripDetails />} />
+            <Route
+              path="/booking-review"
+              element={
+                <ProtectedRoute>
+                  <BookingReview />
                 </ProtectedRoute>
               }
             />

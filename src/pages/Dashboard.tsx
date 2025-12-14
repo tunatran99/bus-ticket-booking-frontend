@@ -9,6 +9,23 @@ import { Button } from '../components/ui/button';
 import { Calendar, Clock, MapPin, User as UserIcon, Users } from 'lucide-react';
 import apiClient from '../services/api';
 
+type ApiResponse<T> = {
+  data: T;
+};
+
+type DashboardMePayload = {
+  metrics: DashboardMetrics;
+  recentTrips: TripItem[];
+  user?: {
+    role?: string;
+  } | null;
+};
+
+type DashboardAdminPayload = {
+  metrics: AdminMetrics;
+  recentUsers: RecentUserItem[];
+};
+
 interface DashboardMetrics {
   totalTickets: number;
   upcomingTrips: number;
@@ -52,31 +69,35 @@ export function Dashboard() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login');
+      void navigate('/login');
       return;
     }
 
     const loadData = async () => {
       try {
-        const meRes = await apiClient.get('/dashboard/me');
-        const meData = meRes.data.data;
-        setMetrics(meData.metrics);
-        setTrips(meData.recentTrips);
+        const meRes = await apiClient.get<ApiResponse<DashboardMePayload>>('/dashboard/me');
+        const meData = meRes.data?.data;
+        setMetrics(meData?.metrics ?? null);
+        setTrips(meData?.recentTrips ?? []);
 
         // If the current user is admin, load admin dashboard metrics as well
-        if (meData.user?.role === 'admin') {
-          const adminRes = await apiClient.get('/dashboard/admin');
-          const adminData = adminRes.data.data;
-          setAdminMetrics(adminData.metrics);
-          setRecentUsers(adminData.recentUsers);
+        if (meData?.user?.role === 'admin') {
+          const adminRes =
+            await apiClient.get<ApiResponse<DashboardAdminPayload>>('/dashboard/admin');
+          const adminData = adminRes.data?.data;
+          setAdminMetrics(adminData?.metrics ?? null);
+          setRecentUsers(adminData?.recentUsers ?? []);
+        } else {
+          setAdminMetrics(null);
+          setRecentUsers([]);
         }
       } catch (error) {
         // If anything fails, send user back to login so they can re-authenticate
-        navigate('/login');
+        void navigate('/login');
       }
     };
 
-    loadData();
+    void loadData();
   }, [isAuthenticated, navigate]);
 
   const formatPrice = (price: number) => {
@@ -122,7 +143,9 @@ export function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>{t('dashboard.totalTickets') || 'Total Tickets'}</CardTitle>
-              <CardDescription>{t('dashboard.totalTicketsDesc') || 'All tickets you have booked'}</CardDescription>
+              <CardDescription>
+                {t('dashboard.totalTicketsDesc') || 'All tickets you have booked'}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{metrics?.totalTickets ?? '-'}</div>
@@ -132,7 +155,9 @@ export function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>{t('dashboard.upcomingTrips') || 'Upcoming Trips'}</CardTitle>
-              <CardDescription>{t('dashboard.upcomingTripsDesc') || 'Trips scheduled in the future'}</CardDescription>
+              <CardDescription>
+                {t('dashboard.upcomingTripsDesc') || 'Trips scheduled in the future'}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{metrics?.upcomingTrips ?? '-'}</div>
@@ -142,7 +167,9 @@ export function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>{t('dashboard.completedTrips') || 'Completed Trips'}</CardTitle>
-              <CardDescription>{t('dashboard.completedTripsDesc') || 'Trips you have already taken'}</CardDescription>
+              <CardDescription>
+                {t('dashboard.completedTripsDesc') || 'Trips you have already taken'}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{metrics?.completedTrips ?? '-'}</div>
@@ -152,7 +179,9 @@ export function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>{t('dashboard.cancelledTrips') || 'Cancelled Trips'}</CardTitle>
-              <CardDescription>{t('dashboard.cancelledTripsDesc') || 'Trips you cancelled'}</CardDescription>
+              <CardDescription>
+                {t('dashboard.cancelledTripsDesc') || 'Trips you cancelled'}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{metrics?.cancelledTrips ?? '-'}</div>
@@ -258,7 +287,9 @@ export function Dashboard() {
                             <div className="font-medium">{u.fullName}</div>
                             <div className="text-xs text-muted-foreground">{u.email}</div>
                           </div>
-                          <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>{u.role}</Badge>
+                          <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
+                            {u.role}
+                          </Badge>
                         </li>
                       ))}
                     </ul>
