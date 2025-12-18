@@ -20,6 +20,7 @@ export interface CreateBookingResponseData {
   total: number;
   currency: string;
   status: string;
+  paymentStatus: 'unpaid' | 'processing' | 'paid' | 'failed';
   expiresAt?: string | null;
 }
 
@@ -45,6 +46,10 @@ export interface BookingRecord {
   contact: ContactInfo;
   passengers: PassengerFormState[];
   status: 'pending' | 'confirmed' | 'cancelled' | 'expired';
+  paymentStatus: 'unpaid' | 'processing' | 'paid' | 'failed';
+  paymentProvider?: string;
+  paymentIntentId?: string;
+  paidAt?: string | null;
   createdAt: string;
   updatedAt: string;
   expiresAt?: string | null;

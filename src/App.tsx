@@ -24,6 +24,7 @@ import { AdminRoutesPage } from './pages/AdminRoutesPage';
 import { AdminBusesPage } from './pages/AdminBusesPage';
 import { GoogleCallback } from './pages/GoogleCallback';
 import { GuestLookup } from './pages/GuestLookup';
+import { PaymentStatus } from './pages/PaymentStatus';
 
 export default function App() {
   return (
@@ -108,6 +109,7 @@ export default function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/guest-booking" element={<GuestLookup />} />
+            <Route path="/payment/status" element={<PaymentStatus />} />
             <Route path="*" element={<ErrorPage />} />
           </Routes>
         </Router>

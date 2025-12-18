@@ -13,29 +13,7 @@ import { useFeedbackDialog } from '../hooks/useFeedbackDialog';
 import type { PassengerFormState, PassengerRouteState } from '../types/passenger';
 import { bookingsService } from '../services/bookings.service';
 import { getErrorMessage } from '../services/error';
-import { ticketsService } from '../services/tickets.service';
-
-const ROUTE_DELIMITERS = ['→', '->', ' - ', ' — ', ' to '];
-
-const extractRouteCities = (routeLabel?: string) => {
-  if (!routeLabel) {
-    return { origin: 'Origin', destination: 'Destination' };
-  }
-
-  const normalized = routeLabel.replace(/\s+/g, ' ').trim();
-  for (const delimiter of ROUTE_DELIMITERS) {
-    if (normalized.includes(delimiter)) {
-      const [rawOrigin, rawDestination] = normalized.split(delimiter);
-      const origin = rawOrigin?.trim();
-      const destination = rawDestination?.trim();
-      if (origin && destination) {
-        return { origin, destination };
-      }
-    }
-  }
-
-  return { origin: normalized, destination: 'Destination' };
-};
+import { paymentsService } from '../services/payments.service';
 
 const generateBookingReferenceFallback = () => {
   const randomSegment =
@@ -123,76 +101,33 @@ export function BookingReview() {
     seatCount: effectiveSeatCount,
   };
 
-  const sendTicketEmailIfPossible = async (bookingReference: string) => {
-    if (passengers.length === 0) return;
-    const contactEmail = contact.email?.trim();
-    if (!contactEmail) return;
-
-    const mainPassenger = passengers[0];
-    const passengerName = mainPassenger.name?.trim() || contactEmail;
-    const passengerId = mainPassenger.idNumber?.trim();
-    const seatLabel = mainPassenger.seatLabel?.trim() || 'Seat 1A';
-    const { origin, destination } = extractRouteCities(trip.route);
-    const departureTime = trip.date ?? new Date().toISOString();
-    const arrivalTime = trip.arrival ?? departureTime;
-
+  const persistCheckoutContext = (bookingReference: string) => {
+    const context = {
+      bookingReference,
+      passengers,
+      contact,
+      trip,
+      total,
+      seatCount: effectiveSeatCount,
+      guestMode,
+    };
     try {
-      await ticketsService.sendTicketEmail({
-        recipient: contactEmail,
-        ticket: {
-          bookingReference,
-          issuedBy: trip.company ?? 'BusTicket.vn',
-          passenger: {
-            name: passengerName,
-            id: passengerId,
-          },
-          seat: {
-            label: seatLabel,
-            type: trip.seatType,
-            coach: trip.company,
-          },
-          route: {
-            origin,
-            destination,
-          },
-          bus: {
-            name: trip.company ?? 'BusTicket Coach',
-            plate: trip.busPlate || undefined,
-          },
-          departure: {
-            city: origin,
-            terminal: trip.terminal ?? `${origin} Central Station`,
-            time: departureTime,
-          },
-          arrival: {
-            city: destination,
-            terminal: `${destination} Central Station`,
-            time: arrivalTime,
-          },
-          supportContact: '1900 868 686',
-        },
-      });
+      sessionStorage.setItem(`payment:context:${bookingReference}`, JSON.stringify(context));
     } catch (error) {
-      console.error('Failed to send ticket email', error);
+      console.warn('Unable to persist payment context', error);
     }
   };
 
   const handleConfirm = async () => {
     setIsSubmitting(true);
+    const tempWindow =
+      typeof window !== 'undefined' ? window.open('', '_blank', 'noopener,noreferrer') : null;
     try {
       const createBookingRequest = guestMode
         ? (payload: Parameters<typeof bookingsService.createGuestBooking>[0]) =>
             bookingsService.createGuestBooking(payload)
         : (payload: Parameters<typeof bookingsService.createBooking>[0]) =>
             bookingsService.createBooking(payload);
-
-      const confirmBookingRequest = guestMode
-        ? (reference: string) =>
-            bookingsService.confirmGuestBooking(reference, {
-              phone: contact.phone,
-              email: contact.email,
-            })
-        : (reference: string) => bookingsService.confirmBooking(reference);
 
       const response = await createBookingRequest({
         route: trip.route!,
@@ -205,17 +140,47 @@ export function BookingReview() {
         passengers,
       });
       const bookingReference = response.bookingReference ?? generateBookingReferenceFallback();
-      const confirmed = response.bookingReference
-        ? await confirmBookingRequest(bookingReference)
-        : { status: 'pending' };
-      await sendTicketEmailIfPossible(bookingReference);
+      void persistCheckoutContext(bookingReference);
 
-      const referenceLine = bookingReference ? ` Reference: ${bookingReference}` : '';
-      showDialog({
-        title: t('bookingReview.confirmationSuccessTitle'),
-        description: `${t('bookingReview.confirmationSuccessDescription')}${referenceLine} (${confirmed.status})`,
+      const statusUrl = `${window.location.origin}/payment/status`;
+      const session = await paymentsService.createSession({
+        bookingReference,
+        successUrl: statusUrl,
+        cancelUrl: statusUrl,
+        isGuest: guestMode,
+        contact: guestMode
+          ? {
+              phone: contact.phone,
+              email: contact.email,
+            }
+          : undefined,
+      });
+
+      const paymentPath = `/payment/status?paymentId=${session.paymentId}&bookingReference=${bookingReference}`;
+      if (tempWindow) {
+        tempWindow.location.href = session.checkoutUrl;
+      } else {
+        window.open(session.checkoutUrl, '_blank', 'noopener');
+      }
+
+      void navigate(paymentPath, {
+        state: {
+          paymentSession: session,
+          bookingContext: {
+            bookingReference,
+            passengers,
+            contact,
+            trip,
+            total,
+            seatCount: effectiveSeatCount,
+            guestMode,
+          },
+        },
       });
     } catch (error: unknown) {
+      if (tempWindow && !tempWindow.closed) {
+        tempWindow.close();
+      }
       showDialog({
         title: t('bookingReview.confirmationErrorTitle'),
         description: getErrorMessage(error, t('bookingReview.confirmationErrorDescription')),
@@ -260,17 +225,9 @@ export function BookingReview() {
 
         {guestMode && (
           <Alert className="mb-6 border-dashed border-primary/40 bg-primary/5">
-            <AlertTitle>
-              {language === 'vi'
-                ? 'Bạn đang đặt vé với tư cách khách'
-                : 'You are booking as a guest'}
-            </AlertTitle>
+            <AlertTitle>{t('bookingReview.guestAlertTitle')}</AlertTitle>
             <AlertDescription className="flex flex-wrap items-center gap-3 text-sm">
-              <span>
-                {language === 'vi'
-                  ? 'Tạo tài khoản để lưu hành trình và truy cập dễ dàng mục My Tickets.'
-                  : 'Create an account to save journeys and access them instantly from My Tickets.'}
-              </span>
+              <span>{t('bookingReview.guestAlertDescription')}</span>
               <Button
                 type="button"
                 variant="outline"
@@ -279,7 +236,7 @@ export function BookingReview() {
                 onClick={() => navigate('/signup')}
               >
                 <LogIn className="size-3" />
-                {language === 'vi' ? 'Đăng ký' : 'Create account'}
+                {t('bookingReview.guestSignupCta')}
               </Button>
             </AlertDescription>
           </Alert>
@@ -393,9 +350,9 @@ export function BookingReview() {
                 <div className="flex gap-3">
                   <Shield className="size-5 text-primary" />
                   <div>
-                    <p className="font-semibold">Flexible changes</p>
+                    <p className="font-semibold">{t('bookingReview.flexibleChangesTitle')}</p>
                     <p className="text-sm text-muted-foreground">
-                      Free changes up to 24h before departure. 50% refund afterward.
+                      {t('bookingReview.flexibleChangesDescription')}
                     </p>
                   </div>
                 </div>
@@ -403,9 +360,9 @@ export function BookingReview() {
                 <div className="flex gap-3">
                   <Clock className="size-5 text-primary" />
                   <div>
-                    <p className="font-semibold">Arrival guidance</p>
+                    <p className="font-semibold">{t('bookingReview.arrivalGuidanceTitle')}</p>
                     <p className="text-sm text-muted-foreground">
-                      Please arrive 30 minutes early with your ID and e-ticket QR code.
+                      {t('bookingReview.arrivalGuidanceDescription')}
                     </p>
                   </div>
                 </div>
@@ -451,7 +408,9 @@ export function BookingReview() {
                   disabled={isSubmitting}
                 >
                   <Wallet className="size-4" />
-                  {isSubmitting ? t('bookingReview.processingCta') : t('bookingReview.confirmCta')}
+                  {isSubmitting
+                    ? t('bookingReview.processingCta')
+                    : t('bookingReview.proceedToPayment')}
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
